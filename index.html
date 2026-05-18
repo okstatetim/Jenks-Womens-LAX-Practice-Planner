@@ -527,6 +527,19 @@
     border-bottom: 1px dotted #e0e0e0;
   }
   .plan-drill-item:last-child { border-bottom: none; }
+  .plan-drill-img-wrap {
+    margin-left: 12px;
+    margin-top: 6px;
+    margin-bottom: 4px;
+  }
+  .plan-drill-desc {
+    margin-left: 16px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    font-size: 11px;
+    color: #555;
+    line-height: 1.4;
+  }
   .plan-section-notes {
     margin-left: 72px;
     margin-top: 0;
@@ -537,9 +550,10 @@
     white-space: pre-wrap;
   }
   .plan-section-img {
-    width: 240px;
-    float: right;
-    margin: 0 0 8px 16px;
+    display: block;
+    max-width: 320px;
+    width: 100%;
+    margin: 6px 0 2px 0;
     border-radius: 4px;
     border: 1px solid #ddd;
   }
@@ -1135,62 +1149,72 @@ function clearPlan() {
 // GENERATE PLAN PREVIEW
 // ═══════════════════════════════════
 function generatePlan() {
-  const date = document.getElementById('plan-date').value;
-  const team = document.getElementById('plan-team').value;
-  const theme = document.getElementById('plan-theme').value;
+  var date = document.getElementById('plan-date').value;
+  var team = document.getElementById('plan-team').value;
+  var theme = document.getElementById('plan-theme').value;
 
-  const dateStr = date
+  var dateStr = date
     ? new Date(date + 'T12:00:00').toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'})
     : 'Date TBD';
 
-  let html = `
-    <div class="plan-header">
-      <div class="plan-title">JENKS TROJANS &nbsp;<span>WOMEN'S LAX</span><br><span style="font-size:22px;color:#333;">${dateStr}</span></div>
-      <div class="plan-meta">
-        ${team ? `Team: ${team}` : ''} ${theme ? ` &nbsp;|&nbsp; Focus: ${theme}` : ''}
-      </div>
-    </div>
-  `;
+  var html = '<div class="plan-header">' +
+    '<div class="plan-title">JENKS TROJANS &nbsp;<span>WOMEN\'S LAX</span><br>' +
+    '<span style="font-size:22px;color:#333;">' + dateStr + '</span></div>' +
+    '<div class="plan-meta">' +
+    (team ? 'Team: ' + team : '') +
+    (theme ? ' &nbsp;|&nbsp; Focus: ' + theme : '') +
+    '</div></div>';
 
-  SECTION_CONFIG.forEach(sec => {
-    const timeSel = document.querySelector(`select[name="time_${sec.key}"]`);
-    const time = timeSel ? timeSel.value : '';
+  SECTION_CONFIG.forEach(function(sec) {
+    var timeSel = document.querySelector('select[name="time_' + sec.key + '"]');
+    var time = timeSel ? timeSel.value : '';
+    var safeKey = sec.key.replace(/\s+/g,'_');
 
-    let drillNames = [];
-    let hasFullFieldImg = false;
-    const safeKey = sec.key.replace(/\s+/g,'_');
-    document.querySelectorAll(`input[name="drill_cb_${safeKey}"]:checked`).forEach(cb => {
-      const drill = DRILL_DB.find(d => d.id === cb.value);
-      if (drill) {
-        drillNames.push(drill.name);
-        if (drill.img && drill.img.startsWith('data:')) hasFullFieldImg = true;
-      }
+    var notesEl = document.querySelector('textarea[name="notes_' + sec.key + '"]');
+    var notes = notesEl ? notesEl.value.trim() : '';
+    var hasNotes = notes.length > 0;
+
+    var checkedCbs = Array.from(document.querySelectorAll('input[name="drill_cb_' + safeKey + '"]:checked'));
+    if (checkedCbs.length === 0 && !hasNotes && !sec.fixed) return;
+
+    // Build drill items
+    var drillItemsInner = '';
+    checkedCbs.forEach(function(cb) {
+      var drill = DRILL_DB.find(function(d) { return d.id === cb.value; });
+      if (!drill) return;
+      var descTag = (drill.desc && drill.desc !== 'No description.')
+        ? '<div class="plan-drill-desc">' + drill.desc + '</div>'
+        : '';
+      var imgTag = drill.img
+        ? '<div class="plan-drill-img-wrap"><img class="plan-section-img" src="' + drill.img + '" alt="' + drill.name + ' diagram"></div>'
+        : '';
+      drillItemsInner += '<div class="plan-drill-item">&#8212; ' + drill.name + descTag + imgTag + '</div>';
     });
+    var drillItemsHtml = drillItemsInner.length > 0
+      ? '<div class="plan-section-drills">' + drillItemsInner + '</div>'
+      : '';
 
-    const notesCheck = document.querySelector(`textarea[name="notes_${sec.key}"]`);
-    const hasNotes = notesCheck && notesCheck.value.trim().length > 0;
-    if (drillNames.length === 0 && !hasNotes && !sec.fixed) return;
+    // Build notes items
+    var notesHtml = '';
+    if (hasNotes) {
+      var notesLines = notes.split('\n').filter(function(l) { return l.trim(); });
+      var notesInner = notesLines.map(function(l) {
+        return '<div class="plan-drill-item">&#8212; ' + l.trim() + '</div>';
+      }).join('');
+      notesHtml = notesInner ? '<div class="plan-section-drills">' + notesInner + '</div>' : '';
+    }
 
-    const imgHtml = hasFullFieldImg ? `<img class="plan-section-img" src="${FULL_FIELD_IMG}" alt="Full Field Clearing Drill diagram">` : '';
-    const notesSel = document.querySelector(`textarea[name="notes_${sec.key}"]`);
-    const notes = notesSel ? notesSel.value.trim() : '';
-    const notesLines = notes ? notes.split('\n').filter(l => l.trim()) : [];
-    const notesHtml = notesLines.length > 0 ? `<div class="plan-section-drills">${notesLines.map(l => `<div class="plan-drill-item">&#8212; ${l.trim()}</div>`).join('')}</div>` : '';
-
-    html += `
-      <div class="plan-section">
-        ${imgHtml}
-        <div class="plan-section-header">
-          <span class="plan-section-time">${time}</span>
-          <span class="plan-section-cat">${sec.key}</span>
-        </div>
-        ${drillNames.length > 0 ? `<div class="plan-section-drills">${drillNames.map(n => `<div class="plan-drill-item">&#8212; ${n}</div>`).join('')}</div>` : ''}
-        ${notesHtml}
-      </div>
-    `;
+    html += '<div class="plan-section">' +
+      '<div class="plan-section-header">' +
+      '<span class="plan-section-time">' + time + '</span>' +
+      '<span class="plan-section-cat">' + sec.key + '</span>' +
+      '</div>' +
+      drillItemsHtml +
+      notesHtml +
+      '</div>';
   });
 
-  const preview = document.getElementById('plan-preview');
+  var preview = document.getElementById('plan-preview');
   preview.innerHTML = html;
   preview.classList.add('visible');
   document.getElementById('plan-preview-controls').style.display = 'flex';
