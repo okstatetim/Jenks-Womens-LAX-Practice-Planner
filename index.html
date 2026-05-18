@@ -864,7 +864,7 @@ for (let h = 8; h <= 21; h++) {
     if (h === 21 && m > 0) break;
     const hh = h > 12 ? h - 12 : h;
     const ampm = h >= 12 ? 'PM' : 'AM';
-    const mm = m === 0 ? '00' : m;
+    const mm = m < 10 ? '0' + m : m;
     TIMES.push(`${hh}:${mm} ${ampm}`);
   }
 }
