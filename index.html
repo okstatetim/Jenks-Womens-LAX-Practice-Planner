@@ -1141,16 +1141,16 @@ function clearEditImage() {
 }
 
 function saveEditDrill() {
-  var id   = document.getElementById('edit-drill-id').value;
-  var name = document.getElementById('edit-drill-name').value.trim();
-  var cat  = document.getElementById('edit-drill-cat').value;
-  var desc = document.getElementById('edit-drill-desc').value.trim();
+  var id     = document.getElementById('edit-drill-id').value;
+  var name   = document.getElementById('edit-drill-name').value.trim();
+  var cat    = document.getElementById('edit-drill-cat').value;
+  var desc   = document.getElementById('edit-drill-desc').value.trim();
   var urlImg = document.getElementById('edit-drill-img-url').value.trim();
+  var refUrl = document.getElementById('edit-drill-ref') ? document.getElementById('edit-drill-ref').value.trim() : '';
 
   if (!name || !cat) { toast('Name and category are required.'); return; }
 
   function applyEdit(imageUrl) {
-    // Update backend — delete old, add new with same data
     showLoading('Saving changes...');
     apiPost({ action: 'deleteDrill', id: id }).then(function() {
       return apiPost({
@@ -1158,14 +1158,14 @@ function saveEditDrill() {
         name: name,
         category: cat,
         description: desc || 'No description.',
-        imageUrl: imageUrl || ''
+        imageUrl: imageUrl || '',
+        referenceUrl: refUrl
       });
     }).then(function(data) {
       hideLoading();
       if (data.success) {
-        // Update local DRILL_DB
         var idx = DRILL_DB.findIndex(function(d) { return d.id === id; });
-        var updatedDrill = { id: data.id, name: name, cat: cat, desc: desc || 'No description.', img: imageUrl || null };
+        var updatedDrill = { id: data.id, name: name, cat: cat, desc: desc || 'No description.', img: imageUrl || null, ref: refUrl || null };
         if (idx > -1) DRILL_DB[idx] = updatedDrill;
         else DRILL_DB.push(updatedDrill);
         buildSections();
@@ -1179,7 +1179,7 @@ function saveEditDrill() {
       hideLoading();
       toast('Backend error — changes saved locally only.');
       var idx = DRILL_DB.findIndex(function(d) { return d.id === id; });
-      var updatedDrill = { id: id, name: name, cat: cat, desc: desc || 'No description.', img: imageUrl || null };
+      var updatedDrill = { id: id, name: name, cat: cat, desc: desc || 'No description.', img: imageUrl || null, ref: refUrl || null };
       if (idx > -1) DRILL_DB[idx] = updatedDrill;
       buildSections();
       renderLibrary();
@@ -1188,6 +1188,7 @@ function saveEditDrill() {
   }
 
   if (_editPendingImg && _editPendingImg.startsWith('data:')) {
+    // New image uploaded — upload to Drive first, then save with both image and ref URL
     showLoading('Uploading image...');
     var parts = _editPendingImg.split(',');
     var mimeType = parts[0].match(/:(.*?);/)[1];
@@ -1203,8 +1204,9 @@ function saveEditDrill() {
       applyEdit(urlImg);
     });
   } else {
+    // No new image — preserve existing image URL from thumb
     var thumb = document.getElementById('edit-drill-img-thumb');
-    var existingImg = thumb.style.display !== 'none' && thumb.src ? thumb.src : '';
+    var existingImg = (thumb && thumb.style.display !== 'none' && thumb.src) ? thumb.src : '';
     applyEdit(urlImg || existingImg);
   }
 }
@@ -1236,7 +1238,6 @@ function apiGet(params) {
 }
 
 function apiPost(payload) {
-  console.log('apiPost payload:', JSON.stringify(payload));
   return fetch(BACKEND_URL, {
     method: 'POST',
     body: JSON.stringify(payload)
@@ -1802,8 +1803,6 @@ function submitNewDrill() {
 
   function saveDrillToSheet(imageUrl) {
     showLoading('Saving drill...');
-    console.log('Saving drill - refUrl value:', refUrl);
-    console.log('Saving drill - imageUrl value:', imageUrl);
     apiPost({
       action: 'addDrill',
       name: name,
@@ -1830,7 +1829,10 @@ function submitNewDrill() {
     });
   }
 
-  // Clear and close form immediately
+  // Capture image data BEFORE clearing the form
+  var pendingImg = _pendingDrillImg;
+
+  // Clear and close form
   document.getElementById('new-drill-name').value = '';
   document.getElementById('new-drill-cat').value = '';
   document.getElementById('new-drill-desc').value = '';
@@ -1839,10 +1841,10 @@ function submitNewDrill() {
   clearDrillImage();
   closeAddDrill();
 
-  if (_pendingDrillImg && _pendingDrillImg.startsWith('data:')) {
+  if (pendingImg && pendingImg.startsWith('data:')) {
     showLoading('Uploading image to Google Drive...');
-    var parts    = _pendingDrillImg.split(',');
-    var mimeType = parts[0].match(/:(.*?);/)[1];
+    var parts      = pendingImg.split(',');
+    var mimeType   = parts[0].match(/:(.*?);/)[1];
     var base64Data = parts[1];
     apiPost({
       action: 'uploadImage',
