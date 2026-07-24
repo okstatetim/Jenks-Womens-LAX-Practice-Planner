@@ -413,6 +413,28 @@
     border-color: var(--accent);
     color: var(--accent);
   }
+  .drill-edit-btn {
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: 4px;
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    font-family: inherit;
+    padding: 0;
+  }
+  .drill-edit-btn:hover {
+    background: #f0f4ff;
+    border-color: #4a5568;
+    color: #1a1a2e;
+  }
 
   /* ── CATEGORY FILTER PILLS ── */
   .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
@@ -791,6 +813,51 @@
   </div>
 </div>
 
+<!-- EDIT DRILL MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-title">Edit Drill</div>
+    <div class="grid-2" style="gap:16px;">
+      <div>
+        <label>Drill Name *</label>
+        <input type="text" id="edit-drill-name" placeholder="Drill name">
+      </div>
+      <div>
+        <label>Category *</label>
+        <select id="edit-drill-cat"></select>
+      </div>
+    </div>
+    <div style="margin-top:12px;">
+      <label>Description / Instructions</label>
+      <textarea id="edit-drill-desc" placeholder="Describe the drill..." style="min-height:80px;"></textarea>
+    </div>
+    <div style="margin-top:12px;">
+      <label>Diagram / Photo (optional)</label>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <label for="edit-drill-img-file" class="btn btn-ghost btn-sm" style="cursor:pointer;margin:0;">
+            &#128247; Upload New Image
+          </label>
+          <input type="file" id="edit-drill-img-file" accept="image/*" style="display:none;" onchange="handleEditImageUpload(this)">
+          <span style="font-size:12px;color:var(--text-muted);">or paste a URL below</span>
+        </div>
+        <input type="text" id="edit-drill-img-url" placeholder="https://... (optional)">
+        <div id="edit-drill-img-preview" style="margin-top:4px;">
+          <img id="edit-drill-img-thumb" src="" alt="Preview" style="max-width:100%;max-height:160px;border-radius:6px;border:1px solid var(--border);object-fit:contain;display:none;">
+          <div id="edit-remove-img-wrap" style="display:none;margin-top:6px;">
+            <button class="btn btn-ghost btn-sm" onclick="clearEditImage()">&#10005; Remove image</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <input type="hidden" id="edit-drill-id">
+    <div class="modal-actions">
+      <button class="btn btn-red" onclick="saveEditDrill()">Save Changes</button>
+      <button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="loading-overlay" id="loading-overlay">
   <div class="spinner"></div>
@@ -951,6 +1018,155 @@ let activeCatFilter = "All";
 // ═══════════════════════════════════
 // AUTH
 // ═══════════════════════════════════
+// ═══════════════════════════════════
+// EDIT DRILL
+// ═══════════════════════════════════
+var _editingDrillId = null;
+var _editPendingImg = null;
+
+function openEditDrill(id) {
+  var drill = DRILL_DB.find(function(d) { return d.id === id; });
+  if (!drill) return;
+  _editingDrillId = id;
+  _editPendingImg = null;
+
+  // Populate category select
+  var sel = document.getElementById('edit-drill-cat');
+  sel.innerHTML = CATEGORIES.map(function(c) {
+    return '<option value="' + c + '"' + (c === drill.cat ? ' selected' : '') + '>' + c + '</option>';
+  }).join('');
+
+  document.getElementById('edit-drill-name').value = drill.name;
+  document.getElementById('edit-drill-desc').value = drill.desc === 'No description.' ? '' : drill.desc;
+  document.getElementById('edit-drill-id').value = id;
+
+  // Show existing image if any
+  var thumb = document.getElementById('edit-drill-img-thumb');
+  var removeWrap = document.getElementById('edit-remove-img-wrap');
+  var urlInput = document.getElementById('edit-drill-img-url');
+  if (drill.img) {
+    thumb.src = drill.img;
+    thumb.style.display = 'block';
+    removeWrap.style.display = 'block';
+    urlInput.value = drill.img.startsWith('data:') ? '' : drill.img;
+  } else {
+    thumb.src = '';
+    thumb.style.display = 'none';
+    removeWrap.style.display = 'none';
+    urlInput.value = '';
+  }
+
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.remove('open');
+  _editingDrillId = null;
+  _editPendingImg = null;
+  document.getElementById('edit-drill-img-file').value = '';
+}
+
+function handleEditImageUpload(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    _editPendingImg = e.target.result;
+    document.getElementById('edit-drill-img-url').value = '';
+    var thumb = document.getElementById('edit-drill-img-thumb');
+    thumb.src = _editPendingImg;
+    thumb.style.display = 'block';
+    document.getElementById('edit-remove-img-wrap').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearEditImage() {
+  _editPendingImg = null;
+  document.getElementById('edit-drill-img-file').value = '';
+  document.getElementById('edit-drill-img-url').value = '';
+  var thumb = document.getElementById('edit-drill-img-thumb');
+  thumb.src = '';
+  thumb.style.display = 'none';
+  document.getElementById('edit-remove-img-wrap').style.display = 'none';
+}
+
+function saveEditDrill() {
+  var id   = document.getElementById('edit-drill-id').value;
+  var name = document.getElementById('edit-drill-name').value.trim();
+  var cat  = document.getElementById('edit-drill-cat').value;
+  var desc = document.getElementById('edit-drill-desc').value.trim();
+  var urlImg = document.getElementById('edit-drill-img-url').value.trim();
+
+  if (!name || !cat) { toast('Name and category are required.'); return; }
+
+  function applyEdit(imageUrl) {
+    // Update backend — delete old, add new with same data
+    showLoading('Saving changes...');
+    apiPost({ action: 'deleteDrill', id: id }).then(function() {
+      return apiPost({
+        action: 'addDrill',
+        name: name,
+        category: cat,
+        description: desc || 'No description.',
+        imageUrl: imageUrl || ''
+      });
+    }).then(function(data) {
+      hideLoading();
+      if (data.success) {
+        // Update local DRILL_DB
+        var idx = DRILL_DB.findIndex(function(d) { return d.id === id; });
+        var updatedDrill = { id: data.id, name: name, cat: cat, desc: desc || 'No description.', img: imageUrl || null };
+        if (idx > -1) DRILL_DB[idx] = updatedDrill;
+        else DRILL_DB.push(updatedDrill);
+        buildSections();
+        renderLibrary();
+        closeEditModal();
+        toast('"' + name + '" updated!');
+      } else {
+        toast('Error saving: ' + (data.error || 'Unknown'));
+      }
+    }).catch(function() {
+      hideLoading();
+      toast('Backend error — changes saved locally only.');
+      var idx = DRILL_DB.findIndex(function(d) { return d.id === id; });
+      var updatedDrill = { id: id, name: name, cat: cat, desc: desc || 'No description.', img: imageUrl || null };
+      if (idx > -1) DRILL_DB[idx] = updatedDrill;
+      buildSections();
+      renderLibrary();
+      closeEditModal();
+    });
+  }
+
+  if (_editPendingImg && _editPendingImg.startsWith('data:')) {
+    showLoading('Uploading image...');
+    var parts = _editPendingImg.split(',');
+    var mimeType = parts[0].match(/:(.*?);/)[1];
+    var base64Data = parts[1];
+    apiPost({
+      action: 'uploadImage',
+      imageData: base64Data,
+      mimeType: mimeType,
+      fileName: name.replace(/\s+/g, '_') + '_diagram.' + mimeType.split('/')[1]
+    }).then(function(data) {
+      applyEdit(data.success ? data.url : urlImg);
+    }).catch(function() {
+      applyEdit(urlImg);
+    });
+  } else {
+    var thumb = document.getElementById('edit-drill-img-thumb');
+    var existingImg = thumb.style.display !== 'none' && thumb.src ? thumb.src : '';
+    applyEdit(urlImg || existingImg);
+  }
+}
+
+// Close edit modal on overlay click
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('edit-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+  });
+});
+
 // ═══════════════════════════════════
 // BACKEND — Google Apps Script calls
 // ═══════════════════════════════════
@@ -1423,7 +1639,11 @@ function renderLibrary() {
           <div class="drill-name">${d.name}</div>
           <div class="drill-desc">${d.desc.substring(0,120)}${d.desc.length > 120 ? '...' : ''}</div>
         </div>
-        ${isEditor ? `<button class="drill-delete-btn" onclick="deleteDrill('${d.id}')" title="Delete drill">&#10005;</button>` : ''}
+        ${isEditor ? `
+          <div style="display:flex;gap:4px;">
+            <button class="drill-edit-btn" onclick="openEditDrill('${d.id}')" title="Edit drill">&#9998;</button>
+            <button class="drill-delete-btn" onclick="deleteDrill('${d.id}')" title="Delete drill">&#10005;</button>
+          </div>` : ''}
       </div>
       ${d.img ? `<img class="drill-img" src="${d.img}" alt="Drill diagram" onclick="showDrillModal('${d.id}')">` : ''}
     </div>
