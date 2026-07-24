@@ -513,7 +513,7 @@
     background: var(--white);
     color: var(--black);
     border-radius: 8px;
-    padding: 40px;
+    padding: 24px 32px;
     font-family: 'Inter', sans-serif;
   }
   #plan-preview.visible { display: block; }
@@ -534,10 +534,16 @@
     color: #555;
     margin-top: 6px;
   }
+  .plan-sections-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
   .plan-section {
     border-left: 4px solid var(--accent);
-    padding: 12px 16px;
-    margin-bottom: 12px;
+    padding: 10px 14px;
+    margin-bottom: 0;
     background: #f8f8f8;
     border-radius: 0 6px 6px 0;
   }
@@ -669,6 +675,7 @@
     #auth-banner { display: none !important; }
     #print-area { display: block !important; }
     body { background: white; margin: 0; padding: 0; }
+    #print-area .plan-sections-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
 
     #print-area .plan-title { font-size: 16px !important; letter-spacing: 2px !important; }
     #print-area .plan-title span[style] { font-size: 12px !important; }
@@ -1523,6 +1530,8 @@ function generatePlan() {
     (theme ? ' &nbsp;|&nbsp; Focus: ' + theme : '') +
     '</div></div>';
 
+  html += '<div class="plan-sections-grid">';
+
   SECTION_CONFIG.forEach(function(sec) {
     var timeSel = document.querySelector('select[name="time_' + sec.key + '"]');
     var time = timeSel ? timeSel.value : '';
@@ -1575,6 +1584,7 @@ function generatePlan() {
       '</div>';
   });
 
+  html += '</div>';
   var preview = document.getElementById('plan-preview');
   preview.innerHTML = html;
   preview.classList.add('visible');
