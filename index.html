@@ -105,7 +105,7 @@
   .tab.active { color: #ffffff; border-bottom-color: var(--accent-light); }
 
   /* ── MAIN LAYOUT ── */
-  .main { padding: 24px; max-width: 1600px; margin: 0 auto; }
+  .main { padding: 24px; max-width: 1200px; margin: 0 auto; }
 
   /* ── PANELS ── */
   .panel { display: none; }
@@ -513,7 +513,8 @@
     background: var(--white);
     color: var(--black);
     border-radius: 8px;
-    padding: 32px 48px;
+    padding: 32px 40px;
+    width: 100%;
     font-family: 'Inter', sans-serif;
   }
   #plan-preview.visible { display: block; }
@@ -755,7 +756,7 @@
     </div>
 
     <!-- PREVIEW -->
-    <div id="plan-preview-controls" style="display:none;margin-top:24px;">
+    <div id="plan-preview-controls" style="display:none;margin-top:24px;width:100%;">
       <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;">
         <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--text-muted);">PREVIEW</span>
         <button class="btn btn-ghost btn-sm" onclick="printPlan()">&#128424; Print / PDF</button>
