@@ -105,7 +105,7 @@
   .tab.active { color: #ffffff; border-bottom-color: var(--accent-light); }
 
   /* ── MAIN LAYOUT ── */
-  .main { padding: 24px; max-width: 1200px; margin: 0 auto; }
+  .main { padding: 24px; max-width: 1600px; margin: 0 auto; }
 
   /* ── PANELS ── */
   .panel { display: none; }
@@ -513,7 +513,7 @@
     background: var(--white);
     color: var(--black);
     border-radius: 8px;
-    padding: 24px 32px;
+    padding: 32px 48px;
     font-family: 'Inter', sans-serif;
   }
   #plan-preview.visible { display: block; }
@@ -535,15 +535,12 @@
     margin-top: 6px;
   }
   .plan-sections-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 12px;
+    display: block;
   }
   .plan-section {
     border-left: 4px solid var(--accent);
     padding: 10px 14px;
-    margin-bottom: 0;
+    margin-bottom: 10px;
     background: #f8f8f8;
     border-radius: 0 6px 6px 0;
   }
@@ -675,7 +672,7 @@
     #auth-banner { display: none !important; }
     #print-area { display: block !important; }
     body { background: white; margin: 0; padding: 0; }
-    #print-area .plan-sections-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+
 
     #print-area .plan-title { font-size: 16px !important; letter-spacing: 2px !important; }
     #print-area .plan-title span[style] { font-size: 12px !important; }
